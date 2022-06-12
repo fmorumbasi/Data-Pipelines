@@ -1,29 +1,36 @@
+# python-based modules
+import pyodbc
+import mysql.connector
 
-sqlserver_extract = ('''
-  SELECT sqlserver_col_1, sqlserver_col_2, sqlserver_col_3
-  FROM sqlserver_1_table
-''')
-sqlserver_insert = ('''
-  INSERT INTO table_demo (col_1, col_2, col_3)
-  VALUES (?, ?, ?)  
-''')
-mysql_extract = ('''
-  SELECT mysql_col_1, mysql_col_2, mysql_col_3
-  FROM mysql_demo_table
-''')
-mysql_insert = ('''
-  INSERT INTO table_demo (col_1, col_2, col_3)
-  VALUES (?, ?, ?)  
-''')
+def etl(query, source_cnx, target_cnx):
+  # extract data from demo source database
+  source_cursor = source_cnx.cursor()
+  source_cursor.execute(query.extract_query)
+  data = source_cursor.fetchall()
+  source_cursor.close()
 
-# Queries getting exported
-class Sql_Query:
-  def __init__(self, extract_query, load_query):
-    self.extract_query = extract_query
-    self.load_query = load_query   
-# create instances for Sql_Query class
-sqlserver_query = SqlQuery(sqlserver_extract, sqlserver_insert)
-mysql_query = SqlQuery(mysql_extract, mysql_insert)
-# creating a list for iterating through values
-mysql_queries = [mysql_query]
-sqlserver_queries = [sqlserver_query]
+  # load data into demo Data Warehouse db
+  
+if data:
+    target_cursor = target_cnx.cursor()
+    target_cursor.execute("USE {}".format(name_for_datawarehouse))
+    target_cursor.executemany(query.load_query, data)
+    print('data loaded to the demo Data Warehouse db')
+    target_cursor.close()
+  else:
+    print('data is empty')
+
+def etl_process(queries, target_cnx, source_db_config, db_platform):
+
+  # configuring demo source database connection
+  if db_platform == 'mysql':
+    source_cnx = mysql.connector.connect(**source_db_config)
+  elif db_platform == 'sqlserver':
+    source_cnx = pyodbc.connect(**source_db_config)
+  else:
+    return 'Error! unrecognised source database platform'
+  # loop through sql queries
+  for query in queries:
+    etl (query, source_cnx, target_cnx)    
+  # close the source db connection
+  source_cnx.close()
